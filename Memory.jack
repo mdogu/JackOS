@@ -1,0 +1,77 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+
+    static Array ram;
+    static Array heap;
+    static Array freeList;
+
+    /** Initializes the class. */
+    function void init() {
+        let ram = 0;
+        let heap = 2048;  // heapBase
+        let freeList = heap;
+        let freeList[0] = 0; // next
+        let freeList[1] = 14335; // length
+        return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+        return ram[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
+    }
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+        var Array currentSegment, previousSegment, block;
+        let currentSegment = freeList;
+        while ((currentSegment[1] < size) & ~(currentSegment[0] = null)) {
+            let previousSegment = currentSegment;
+            let currentSegment = currentSegment[0];
+        }
+        if ((currentSegment[1] < size) | (currentSegment = null)) {
+            do Sys.error(1);
+        }
+        if (currentSegment[1] > (size + 2)) {
+            let block = currentSegment + currentSegment[1] - size;
+            let block[-1] = size;
+            let currentSegment[1] = currentSegment[1] - (size + 2);
+        } else {
+            let block = currentSegment + 2;
+            if (previousSegment = null) {
+                let freeList = currentSegment[0];
+            } else {
+                let previousSegment[0] = currentSegment[0];
+            }
+        }
+        return block;
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+        var Array lastFreeSegment;
+        let lastFreeSegment = freeList;
+        while (~(lastFreeSegment[0] = null)) {
+            let lastFreeSegment = lastFreeSegment[0];
+        }
+        let lastFreeSegment[0] = o - 2;
+        let o[0] = null;
+        return;
+    }    
+}
